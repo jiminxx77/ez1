@@ -82,7 +82,7 @@ st.markdown("""
         color: #c5c6c7;
         font-style: italic;
         font-size: 1rem;
-        margin-bottom: 15px;
+        margin-bottom: 5px;
     }
     
     .mythic { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
@@ -92,39 +92,35 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. 기프티콘 이미지 및 설명 데이터베이스 (원하는 이미지 URL 및 로컬 파일로 변경 가능)
+# 3. 상품 데이터베이스 (필요 시 img에 직접 가진 기프티콘 이미지 파일명이나 URL을 넣으시면 됩니다)
 ITEMS = [
-    # 신화 등급 (5%)
     {
         "grade": "MYTHIC", 
-        "name": "치킨 기프티콘 (사용완료)", 
-        "desc": "이미 전설 속 마왕이 시켜 먹고 바코드까지 깔끔하게 사용 완료된 치킨 쿠폰입니다.", 
+        "name": "황금 치킨 기프티콘", 
+        "desc": "마마의 신성한 축복이 담긴 바삭한 치킨 교환권입니다.", 
         "color": "mythic",
-        "img": "https://picsum.photos/seed/giftcon1/400/500" # 샘플 이미지 (원하는 기프티콘 URL로 변경)
+        "img": "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80"
     },
-    # 전설 등급 (15%)
     {
         "grade": "LEGENDARY", 
-        "name": "스타벅스 아메리카노 (만료됨)", 
-        "desc": "유효기간이 약 500년 전에 지나서 카운터에 보여주면 쫓겨나는 카페 쿠폰입니다.", 
+        "name": "스타벅스 커피 교환권", 
+        "desc": "마마가 챙겨준 아침의 아메리카노 한 잔입니다.", 
         "color": "legendary",
-        "img": "https://picsum.photos/seed/giftcon2/400/500"
+        "img": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80"
     },
-    # 영웅 등급 (30%)
     {
         "grade": "EPIC", 
-        "name": "편의점 1,000원 상품권", 
-        "desc": "바코드가 너무 찌그러져서 그 어떤 바코드 리더기도 읽지 못하는 비운의 쿠폰입니다.", 
+        "name": "편의점 5,000원 상품권", 
+        "desc": "마마 몰래 주전부리를 사 먹을 수 있는 소중한 상품권입니다.", 
         "color": "epic",
-        "img": "https://picsum.photos/seed/giftcon3/400/500"
+        "img": "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=500&q=80"
     },
-    # 희귀 등급 (50%)
     {
         "grade": "RARE", 
-        "name": "붕어빵 1개 무료 교환권", 
-        "desc": "조선시대 한성부 붕어빵 틀에서만 사용 가능했던 기묘한 영수증입니다.", 
+        "name": "달콤한 아이스크림 교환권", 
+        "desc": "식후에 즐기는 마마 추천 디저트 쿠폰입니다.", 
         "color": "rare",
-        "img": "https://picsum.photos/seed/giftcon4/400/500"
+        "img": "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&q=80"
     },
 ]
 
@@ -135,14 +131,14 @@ if "open_count" not in st.session_state:
     st.session_state.open_count = 0
 
 # 5. UI 헤더
-st.title("🎁 심연의 기프티콘 상자")
-st.caption("어둠 속에 봉인된 고대의 기프티콘을 뽑아보세요. (사용 여부는 보장하지 않습니다)")
+st.title("🎁 마마보이에 깊콘 뽑기")
+st.caption("버튼을 눌러 마마의 기프티콘을 당첨 받아보세요!")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # 6. 상자 개봉 로직
-if st.button("🔮 상자 개봉하기"):
-    with st.spinner("심연의 봉인이 풀리는 중..."):
+if st.button("🔮 기프티콘 뽑기"):
+    with st.spinner("마마의 은총을 불러오는 중..."):
         time.sleep(1.0)
     
     weights = [0.05 if item["grade"] == "MYTHIC" 
@@ -167,12 +163,12 @@ if st.button("🔮 상자 개봉하기"):
         </div>
     """, unsafe_allow_html=True)
     
-    # 기프티콘 이미지 출력
-    st.image(drawn_item["img"], caption=f"[{drawn_item['name']}] 사용불가 쿠폰 이미지", use_container_width=True)
+    # 기프티콘 이미지 단독 출력 (수식어/캡션 제거)
+    st.image(drawn_item["img"], use_container_width=True)
 
 # 7. 사이드바 기록
 st.sidebar.title("📜 보관함 현황")
-st.sidebar.write(f"**총 열어본 상자:** {st.session_state.open_count}회")
+st.sidebar.write(f"**총 뽑은 횟수:** {st.session_state.open_count}회")
 st.sidebar.markdown("---")
 
 if st.session_state.history:
@@ -186,4 +182,4 @@ if st.session_state.history:
             unsafe_allow_html=True
         )
 else:
-    st.sidebar.info("상자를 열어 기프티콘을 획득하세요.")
+    st.sidebar.info("버튼을 눌러 기프티콘을 뽑아보세요.")
