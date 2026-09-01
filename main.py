@@ -1,15 +1,14 @@
 import streamlit as st
-import random
 import time
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="마마보이에 깊콘 뽑기",
-    page_icon="🎁",
+    page_title="마마보이에 키 키우기!",
+    page_icon="👶",
     layout="centered"
 )
 
-# 2. 다크 판타지 CSS
+# 2. 다크 판타지 & 레트로 애니메이션 CSS
 st.markdown("""
     <style>
     .stApp {
@@ -22,7 +21,7 @@ st.markdown("""
         color: #f1c40f !important;
         text-shadow: 0 0 20px #8b0000, 2px 2px 5px #000000;
         text-align: center;
-        letter-spacing: 3px;
+        letter-spacing: 2px;
     }
     
     .stCaption {
@@ -31,155 +30,130 @@ st.markdown("""
         font-size: 1.1rem;
     }
 
+    /* 거대한 연타 버튼 스타일링 */
     div.stButton > button:first-child {
-        background: linear-gradient(180deg, #2c1a1a 0%, #0f0808 100%);
-        color: #f1c40f;
-        font-size: 24px !important;
-        font-weight: bold;
-        padding: 25px 50px;
-        border: 2px solid #8b0000;
-        border-radius: 12px;
-        box-shadow: 0 0 15px rgba(139, 0, 0, 0.6);
+        background: linear-gradient(180deg, #8b0000 0%, #4a0000 100%);
+        color: #ffffff;
+        font-size: 28px !important;
+        font-weight: 900;
+        padding: 20px 40px;
+        border: 3px solid #f1c40f;
+        border-radius: 50px;
+        box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
         cursor: pointer;
         width: 100%;
-        margin-top: 20px;
-        transition: all 0.3s ease;
+        margin-top: 10px;
+        transition: transform 0.05s ease, background 0.2s ease;
     }
     
-    div.stButton > button:first-child:hover {
-        background: linear-gradient(180deg, #4a1f1f 0%, #1a0c0c 100%);
-        border-color: #f1c40f;
-        box-shadow: 0 0 25px rgba(241, 196, 15, 0.8);
-        transform: scale(1.02);
+    div.stButton > button:first-child:active {
+        transform: scale(0.95);
+        background: linear-gradient(180deg, #ff0000 0%, #8b0000 100%);
     }
 
-    .item-card {
-        background-color: #121017;
+    /* 캐릭터 출력 프레임 */
+    .character-box {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        height: 380px;
+        background: radial-gradient(circle, #1a1829 0%, #08070b 80%);
         border: 2px solid #8b0000;
-        border-radius: 10px;
-        padding: 20px;
-        text-align: center;
+        border-radius: 15px;
         margin-top: 20px;
-        box-shadow: inset 0 0 15px #000000, 0 0 20px rgba(139, 0, 0, 0.4);
+        padding-bottom: 20px;
+        overflow: hidden;
+        position: relative;
     }
 
-    .item-grade {
-        font-size: 1.2rem;
-        font-weight: bold;
-        letter-spacing: 2px;
-        margin-bottom: 8px;
-    }
-
-    .item-name {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: #ffffff;
-        text-shadow: 0 0 10px #f1c40f;
+    /* 키 미터기 스탯 표시 */
+    .stat-card {
+        background-color: #121017;
+        border: 1px solid #f1c40f;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
         margin-bottom: 10px;
     }
 
-    .item-desc {
-        color: #c5c6c7;
-        font-style: italic;
-        font-size: 1rem;
-        margin-bottom: 5px;
+    .height-text {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #f1c40f;
+        text-shadow: 0 0 10px #f1c40f;
     }
-    
-    .mythic { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
-    .legendary { color: #f1c40f; text-shadow: 0 0 10px #f1c40f; }
-    .epic { color: #a335ee; text-shadow: 0 0 10px #a335ee; }
-    .rare { color: #0070dd; text-shadow: 0 0 10px #0070dd; }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. 상품 데이터베이스 (필요 시 img에 직접 가진 기프티콘 이미지 파일명이나 URL을 넣으시면 됩니다)
-ITEMS = [
-    {
-        "grade": "MYTHIC", 
-        "name": "황금 치킨 기프티콘", 
-        "desc": "마마의 신성한 축복이 담긴 바삭한 치킨 교환권입니다.", 
-        "color": "mythic",
-        "img": "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80"
-    },
-    {
-        "grade": "LEGENDARY", 
-        "name": "스타벅스 커피 교환권", 
-        "desc": "마마가 챙겨준 아침의 아메리카노 한 잔입니다.", 
-        "color": "legendary",
-        "img": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500&q=80"
-    },
-    {
-        "grade": "EPIC", 
-        "name": "편의점 5,000원 상품권", 
-        "desc": "마마 몰래 주전부리를 사 먹을 수 있는 소중한 상품권입니다.", 
-        "color": "epic",
-        "img": "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=500&q=80"
-    },
-    {
-        "grade": "RARE", 
-        "name": "달콤한 아이스크림 교환권", 
-        "desc": "식후에 즐기는 마마 추천 디저트 쿠폰입니다.", 
-        "color": "rare",
-        "img": "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=500&q=80"
-    },
-]
+# 3. 세션 상태 초기화 (최소키 120cm ~ 최대키 300cm)
+MIN_HEIGHT = 120
+MAX_HEIGHT = 300
 
-# 4. 세션 상태 초기화
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "open_count" not in st.session_state:
-    st.session_state.open_count = 0
+if "child_height" not in st.session_state:
+    st.session_state.child_height = 120.0
+if "last_click_time" not in st.session_state:
+    st.session_state.last_click_time = time.time()
+
+# 4. 가만히 있을 때 키 감축 로직 (시간 경과에 따라 감소)
+current_time = time.time()
+time_diff = current_time - st.session_state.last_click_time
+
+# 마지막 클릭 후 시간이 지났다면 키 감소 (초당 약 8cm 감소)
+if time_diff > 0.3:
+    shrink_amount = (time_diff - 0.3) * 8.0
+    st.session_state.child_height = max(MIN_HEIGHT, st.session_state.child_height - shrink_amount)
+    st.session_state.last_click_time = current_time
 
 # 5. UI 헤더
-st.title("🎁 마마보이에 깊콘 뽑기")
-st.caption("버튼을 눌러 마마의 기프티콘을 당첨 받아보세요!")
+st.title("⚡ 존나 눌러서 키 키우기!")
+st.caption("클릭을 쉬는 순간 바로 작아집니다! 광클해서 giant로 만들어보세요!")
+
+# 현재 키 수치 표기
+st.markdown(f"""
+    <div class="stat-card">
+        <div>현재 아이의 키</div>
+        <div class="height-text">{int(st.session_state.child_height)} cm</div>
+    </div>
+""", unsafe_allow_html=True)
+
+# 6. 캐릭터 이모지 및 크기 실시간 변경 계산
+# 키 수치(120~300)에 따라 이모지 폰트 크기(40px ~ 250px) 동적 변경
+font_size = int(40 + (st.session_state.child_height - MIN_HEIGHT) * (210 / (MAX_HEIGHT - MIN_HEIGHT)))
+
+# 키 등급에 따른 캐릭터 상태 표기
+if st.session_state.child_height >= 250:
+    char_emoji = "👹" # 거인 마왕
+    status_label = "🔥 [최종진화] 심연의 거대 마왕!"
+elif st.session_state.child_height >= 200:
+    char_emoji = "🧔" # 거구
+    status_label = "⚡ [3단계] 폭풍 성장한 훈남!"
+elif st.session_state.child_height >= 150:
+    char_emoji = "👦" # 어린이
+    status_label = "🌱 [2단계] 잘 자라고 있는 아이!"
+else:
+    char_emoji = "👶" # 아기
+    status_label = "💧 [1단계] 쪼꼬미 아기 (줄어드는 중...)"
+
+# 캐릭터 시각화 화면
+st.markdown(f"""
+    <div class="character-box">
+        <div style="font-size: {font_size}px; transition: all 0.1s ease; text-align: center;">
+            {char_emoji}
+        </div>
+    </div>
+    <div style="text-align: center; color: #a0a0a0; margin-top: 5px;">{status_label}</div>
+""", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 6. 상자 개봉 로직
-if st.button("🔮 기프티콘 뽑기"):
-    with st.spinner("마마의 은총을 불러오는 중..."):
-        time.sleep(1.0)
-    
-    weights = [0.05 if item["grade"] == "MYTHIC" 
-               else 0.15 if item["grade"] == "LEGENDARY" 
-               else 0.30 if item["grade"] == "EPIC" 
-               else 0.50 for item in ITEMS]
-    
-    drawn_item = random.choices(ITEMS, weights=weights, k=1)[0]
-    
-    st.session_state.open_count += 1
-    st.session_state.history.insert(0, drawn_item)
-    
-    if drawn_item["grade"] in ["MYTHIC", "LEGENDARY"]:
-        st.balloons()
-    
-    # 텍스트 카드 출력
-    st.markdown(f"""
-        <div class="item-card">
-            <div class="item-grade {drawn_item['color']}">&lt; {drawn_item['grade']} &gt;</div>
-            <div class="item-name">{drawn_item['name']}</div>
-            <div class="item-desc">"{drawn_item['desc']}"</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # 기프티콘 이미지 단독 출력 (수식어/캡션 제거)
-    st.image(drawn_item["img"], use_container_width=True)
+# 7. 클릭 이벤트 로직
+if st.button("🔥 광클하여 키 키우기!!!"):
+    # 클릭할 때마다 6cm 상승
+    st.session_state.child_height = min(MAX_HEIGHT, st.session_state.child_height + 6.0)
+    st.session_state.last_click_time = time.time()
+    st.rerun()
 
-# 7. 사이드바 기록
-st.sidebar.title("📜 보관함 현황")
-st.sidebar.write(f"**총 뽑은 횟수:** {st.session_state.open_count}회")
-st.sidebar.markdown("---")
-
-if st.session_state.history:
-    st.sidebar.subheader("최근 획득한 기프티콘")
-    for idx, item in enumerate(st.session_state.history[:10]):
-        color_class = item['color']
-        grade_text = item['grade']
-        name_text = item['name']
-        st.sidebar.markdown(
-            f"**{idx+1}.** <span class='{color_class}'>[{grade_text}]</span> {name_text}", 
-            unsafe_allow_html=True
-        )
-else:
-    st.sidebar.info("버튼을 눌러 기프티콘을 뽑아보세요.")
+# 8. 클릭 안 하고 있을 때 실시간 감축 반응을 위한 자동 대기 (0.15초마다 화면 갱신)
+if st.session_state.child_height > MIN_HEIGHT:
+    time.sleep(0.15)
+    st.rerun()
