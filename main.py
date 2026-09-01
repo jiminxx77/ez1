@@ -100,7 +100,7 @@ st.markdown("""
 # 3. 아무 의미 없지만 쓸데없이 웅장한 아이템 데이터베이스
 ITEMS = [
     # 신화 등급 (5%)
-    {"grade": "MYTHIC", "name": "태초의 먼지 한 털", "desc": "우주가 탄생할 때 튕겨 나간 먼지입니다. 아무런 기능도 없지만 왠지 거룩한 기운이 맴돕니다.", "color": "mythic"},
+    {"grade": "MYTHIC", "name": "태초의 먼지 한 털", "desc": "우주가 탄생할 때 튕겨 나간 먼지입니다. 아무런 기능도 없지만 왠지 거룩한 기운이 맴둡니다.", "color": "mythic"},
     {"grade": "MYTHIC", "name": "봉인된 심연의 공기", "desc": "수천 년 동안 닫혀 있던 고대 지하 성전의 공기입니다. 냄새를 맡으면 그저 오래된 먼지 냄새가 납니다.", "color": "mythic"},
     
     # 전설 등급 (15%)
@@ -119,7 +119,7 @@ ITEMS = [
     {"grade": "RARE", "name": "식어버린 성수 한 방울", "desc": "유효기간이 약 800년 전에 지나서 그냥 약간 미지근하고 투명한 액체입니다.", "color": "rare"},
 ]
 
-# 4. 세션 상태 초기화 (뽑기 기록 및 뽑은 횟수)
+# 4. 세션 상태 초기화
 if "history" not in st.session_state:
     st.session_state.history = []
 if "open_count" not in st.session_state:
@@ -131,30 +131,25 @@ st.caption("어둠 속에 묻혀 있던 고대의 상자입니다. 무엇이 나
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 6. 상자 오픈 버튼 및 무작위 뽑기 로직
+# 6. 상자 개봉 로직
 if st.button("🔮 상자 개봉하기"):
-    # 긴장감을 유도하는 연출
     with st.spinner("심연의 봉인이 풀리는 중..."):
-        time.sleep(1.2) # 1.2초 대기 연출
+        time.sleep(1.0)
     
-    # 등급 가중치 설정 (MYTHIC: 5%, LEGENDARY: 15%, EPIC: 30%, RARE: 50%)
+    # 등급 가중치 설정
     weights = [0.05 if item["grade"] == "MYTHIC" 
                else 0.15 if item["grade"] == "LEGENDARY" 
                else 0.30 if item["grade"] == "EPIC" 
                else 0.50 for item in ITEMS]
     
-    # 아이템 무작위 추출
     drawn_item = random.choices(ITEMS, weights=weights, k=1)[0]
     
-    # 세션 상태 업데이트
     st.session_state.open_count += 1
-    st.session_state.history.insert(0, drawn_item) # 최근 아이템이 맨 위로 오도록 저장
+    st.session_state.history.insert(0, drawn_item)
     
-    # 등급별 파티클 효과 연출
     if drawn_item["grade"] in ["MYTHIC", "LEGENDARY"]:
         st.balloons()
     
-    # 뽑힌 아이템 카드 출력
     st.markdown(f"""
         <div class="item-card">
             <div class="item-grade {drawn_item['color']}">&lt; {drawn_item['grade']} ITEM &gt;</div>
@@ -163,14 +158,22 @@ if st.button("🔮 상자 개봉하기"):
         </div>
     """, unsafe_allow_html=True)
 
-# 7. 사이드바 - 뽑기 통계 및 수집 기록
+# 7. 사이드바 - 문법 에러 수정 완료 영역
 st.sidebar.title("📜 보관함 현황")
 st.sidebar.write(f"**총 열어본 상자:** {st.session_state.open_count}회")
 st.sidebar.markdown("---")
 
 if st.session_state.history:
-    st.sidebar.subheader(" 최근 획득한 보물")
-    for idx, item in enumerate(st.session_state.history[:10]): # 최근 10개만 표시
-        st.sidebar.markdown(f"**{idx+1}.** <span class='{item[\"color\"]}'>[{item['grade']}]</span> {item['name']}", unsafe_allow_html=True)
+    st.sidebar.subheader("최근 획득한 보물")
+    for idx, item in enumerate(st.session_state.history[:10]):
+        color_class = item['color']
+        grade_text = item['grade']
+        name_text = item['name']
+        
+        # f-string 내부 따옴표 이스케이프 오류를 사전에 변수로 추출하여 완전 해결
+        st.sidebar.markdown(
+            f"**{idx+1}.** <span class='{color_class}'>[{grade_text}]</span> {name_text}", 
+            unsafe_allow_html=True
+        )
 else:
     st.sidebar.info("상자를 열어 보물을 획득하세요.")
