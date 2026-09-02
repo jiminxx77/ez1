@@ -5,14 +5,9 @@ st.set_page_config(page_title="1:1 대전 게임", page_icon="⚔️", layout="c
 
 MAX_HP = 100
 
-ATTACK_LINES = [
-    "신태일 등장! 박치기 발사!!",
-    "어디서 신태일이 나타나서 냅다 후려침",
-    "신태일: \"내가 왔다!\" 퍽!!!",
-    "갑자기 나타난 신태일... 그대로 스매시",
-]
-MISS_LINES = ["신태일... 헛스윙 ㅋㅋㅋ", "어이쿠 빗나감 신태일 창피함"]
-ULT_LINE = "신태일 필살! 궁극의 드롭킥!!"
+ATTACK_LINES = ["찰싹!!", "짜악!!", "퍽!! 정통으로 맞음", "따귀 작렬!!"]
+MISS_LINES = ["헛스윙... 창피함", "어이쿠 빗나감"]
+ULT_LINE = "🔥 필살 싸대기 콤보!! 🔥"
 
 # ---------------------------
 # 세션 상태 초기화
@@ -27,7 +22,7 @@ defaults = {
     "turn": "p1",
     "log": [],
     "winner": None,
-    "scene": None,   # (문구, kind, anim_key)
+    "scene": None,  # (text, kind, direction, anim_key)
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -78,123 +73,166 @@ def end_turn_check():
     return False
 
 
-def set_scene(text, kind):
-    # 매번 다른 key를 줘서 애니메이션이 재생될 때마다 새로 재시작되도록 함
+def set_scene(text, kind, direction):
     anim_key = random.randint(0, 999999)
-    st.session_state.scene = (text, kind, anim_key)
+    st.session_state.scene = (text, kind, direction, anim_key)
 
 
-BATTLE_SCENE_CSS = """
+# ---------------------------
+# 캐릭터 SVG (같은 모양, 색만 다름)
+# ---------------------------
+def character_svg(shirt_color, hat_color="#2b2b2b", flip=False):
+    scale_x = -1 if flip else 1
+    return f"""
+    <svg width="100" height="100" viewBox="0 0 100 100" style="transform: scaleX({scale_x});">
+      <path d="M18 30 Q18 4 50 4 Q82 4 82 30 Z" fill="{hat_color}"/>
+      <ellipse cx="50" cy="30" rx="33" ry="8" fill="{hat_color}"/>
+      <circle cx="50" cy="48" r="29" fill="#ffe3c9"/>
+      <circle cx="28" cy="54" r="6.5" fill="#ff9e9e" opacity="0.55" class="blush"/>
+      <circle cx="72" cy="54" r="6.5" fill="#ff9e9e" opacity="0.55" class="blush"/>
+      <path d="M33 45 Q39 37 46 45" stroke="#222" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M54 45 Q61 37 67 45" stroke="#222" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M40 60 Q50 72 60 60 Q50 65 40 60 Z" fill="#ff6f91"/>
+      <rect x="22" y="76" width="56" height="24" rx="11" fill="{shirt_color}"/>
+    </svg>
+    """
+
+
+BATTLE_CSS = """
 <style>
-.stage {
+.arena {
     position: relative;
     height: 150px;
-    overflow: hidden;
-    margin: 6px 0 14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8%;
+    margin: 6px 0 6px 0;
     background: repeating-linear-gradient(45deg, #fff8e1, #fff8e1 10px, #ffecb3 10px, #ffecb3 20px);
     border: 3px solid #333;
     border-radius: 10px;
+    overflow: hidden;
 }
-.fighter {
+.char-box { position: relative; text-align: center; z-index: 1; }
+.char-box .cheek-mark {
     position: absolute;
-    top: 40px;
-    left: 50%;
-    font-size: 3.2rem;
-    transform: translate(-50%, -50%) scale(0.3);
+    top: 46%;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ff1744 0%, rgba(255,23,68,0) 70%);
     opacity: 0;
 }
-.fighter.hit {
-    animation: flyHit 0.9s ease-out forwards;
+.char-box.left .cheek-mark { right: 8px; }
+.char-box.right .cheek-mark { left: 8px; }
+.char-box.hit svg { animation: headShake 0.45s ease-in-out; }
+.char-box.hit .cheek-mark { animation: markPop 0.5s ease-out 0.32s forwards; }
+@keyframes headShake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    50% { transform: rotate(8deg); }
+    75% { transform: rotate(-6deg); }
 }
-.fighter.ult {
-    animation: flyUlt 1.2s ease-out forwards;
-    font-size: 4.2rem;
+@keyframes markPop {
+    0%   { opacity: 0; transform: scale(0.2); }
+    55%  { opacity: 0.9; transform: scale(1.6); }
+    100% { opacity: 0.75; transform: scale(1.2); }
 }
-.fighter.miss {
-    animation: flyMiss 0.9s ease-in forwards;
-}
-@keyframes flyHit {
-    0%   { transform: translate(-220%, -50%) rotate(-30deg) scale(0.4); opacity: 0; }
-    12%  { opacity: 1; }
-    45%  { transform: translate(-50%, -50%) rotate(8deg) scale(1.5); opacity: 1; }
-    55%  { transform: translate(-50%, -50%) rotate(-12deg) scale(1.3); }
-    100% { transform: translate(120%, -50%) rotate(25deg) scale(0.4); opacity: 0; }
-}
-@keyframes flyUlt {
-    0%   { transform: translate(-250%, -80%) rotate(-40deg) scale(0.3); opacity: 0; }
-    10%  { opacity: 1; }
-    40%  { transform: translate(-50%, -50%) rotate(15deg) scale(2); opacity: 1; }
-    50%  { transform: translate(-50%, -50%) rotate(-15deg) scale(1.8); }
-    60%  { transform: translate(-50%, -50%) rotate(15deg) scale(1.9); }
-    100% { transform: translate(200%, 60%) rotate(50deg) scale(0.3); opacity: 0; }
-}
-@keyframes flyMiss {
-    0%   { transform: translate(-220%, -50%) rotate(-20deg) scale(0.4); opacity: 0; }
-    15%  { opacity: 1; }
-    50%  { transform: translate(-30%, -80%) rotate(20deg) scale(1.1); }
-    100% { transform: translate(220%, 40%) rotate(180deg) scale(0.4); opacity: 0; }
-}
-.impact {
+.hand {
     position: absolute;
-    top: 40px;
-    left: 50%;
-    font-size: 2.4rem;
-    transform: translate(-50%, -50%) scale(0);
+    top: 45px;
+    font-size: 2.6rem;
     opacity: 0;
+    z-index: 2;
 }
-.impact.hit { animation: burst 0.5s ease-out 0.35s forwards; }
-.impact.ult { animation: burstUlt 0.7s ease-out 0.35s forwards; font-size: 3.4rem; }
-@keyframes burst {
-    0%   { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
-    30%  { transform: translate(-50%, -50%) scale(1.6) rotate(20deg); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(0.8) rotate(0deg); opacity: 0; }
+.hand.ult { font-size: 3.6rem; }
+.hand.r2l.hit { animation: slapR2L 0.55s ease-in forwards; }
+.hand.l2r.hit { animation: slapL2R 0.55s ease-in forwards; }
+.hand.r2l.miss { animation: missR2L 0.7s ease-in forwards; }
+.hand.l2r.miss { animation: missL2R 0.7s ease-in forwards; }
+@keyframes slapL2R {
+    0%   { left: 18%; opacity: 0; transform: rotate(-40deg) scale(0.6); }
+    20%  { opacity: 1; }
+    65%  { left: 62%; transform: rotate(15deg) scale(1.4); }
+    100% { left: 68%; opacity: 0; transform: rotate(35deg) scale(0.9); }
 }
-@keyframes burstUlt {
-    0%   { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
-    30%  { transform: translate(-50%, -50%) scale(2.2) rotate(30deg); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0; }
+@keyframes slapR2L {
+    0%   { left: 68%; opacity: 0; transform: rotate(40deg) scaleX(-1) scale(0.6); }
+    20%  { opacity: 1; }
+    65%  { left: 24%; transform: rotate(-15deg) scaleX(-1) scale(1.4); }
+    100% { left: 18%; opacity: 0; transform: rotate(-35deg) scaleX(-1) scale(0.9); }
 }
-.stage.shake { animation: shakeStage 0.5s ease-in-out; }
+@keyframes missL2R {
+    0%   { left: 18%; top: 45px; opacity: 0; transform: rotate(-20deg) scale(0.6); }
+    20%  { opacity: 1; }
+    55%  { left: 55%; top: 5px; transform: rotate(30deg) scale(1.1); }
+    100% { left: 75%; top: 45px; opacity: 0; transform: rotate(180deg) scale(0.7); }
+}
+@keyframes missR2L {
+    0%   { left: 68%; top: 45px; opacity: 0; transform: rotate(20deg) scaleX(-1) scale(0.6); }
+    20%  { opacity: 1; }
+    55%  { left: 30%; top: 5px; transform: rotate(-30deg) scaleX(-1) scale(1.1); }
+    100% { left: 10%; top: 45px; opacity: 0; transform: rotate(-180deg) scaleX(-1) scale(0.7); }
+}
+.arena.shake { animation: shakeStage 0.45s ease-in-out; }
 @keyframes shakeStage {
     0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-8px); }
-    40% { transform: translateX(8px); }
-    60% { transform: translateX(-6px); }
-    80% { transform: translateX(6px); }
+    25% { transform: translateX(-6px); }
+    50% { transform: translateX(6px); }
+    75% { transform: translateX(-4px); }
 }
-.caption-line {
-    text-align: center;
-    font-weight: 900;
-    margin-top: -4px;
-    padding: 6px;
-}
-.caption-line.hit { color: #ff7043; }
-.caption-line.ult { color: #e53935; font-size: 1.2rem; }
+.caption-line { text-align: center; font-weight: 900; margin: 4px 0 12px 0; }
+.caption-line.hit { color: #ff5252; }
+.caption-line.ult { color: #d50000; font-size: 1.2rem; }
 .caption-line.miss { color: #9e9e9e; }
 </style>
 """
 
 
 def render_battle_scene():
-    st.markdown(BATTLE_SCENE_CSS, unsafe_allow_html=True)
+    st.markdown(BATTLE_CSS, unsafe_allow_html=True)
 
-    if not st.session_state.scene:
-        st.markdown('<div class="stage"></div>', unsafe_allow_html=True)
-        return
+    p1_svg = character_svg("#b39ddb")            # 플레이어1: 보라색
+    p2_svg = character_svg("#4fc3f7", flip=True)  # 플레이어2: 하늘색 (서로 마주보게 좌우반전)
 
-    text, kind, anim_key = st.session_state.scene
-    char = "🐐"
-    impact_emoji = "💥⭐" if kind != "ult" else "🔥💥🔥"
-    impact_class = "ult" if kind == "ult" else ("hit" if kind == "hit" else "")
+    p1_hit_class = ""
+    p2_hit_class = ""
+    hand_html = ""
+    shake_class = ""
 
-    impact_html = f'<div class="impact {impact_class}">{impact_emoji}</div>' if kind != "miss" else ""
+    if st.session_state.scene:
+        text, kind, direction, anim_key = st.session_state.scene
+        shake_class = "shake" if kind != "miss" else ""
+        anim_result_class = "hit" if kind in ("hit", "ult") else "miss"
+        hand_kind_class = "ult" if kind == "ult" else ""
+
+        if direction == "l2r":
+            hand_dir_class = "l2r"
+            if kind != "miss":
+                p2_hit_class = "hit"
+        else:
+            hand_dir_class = "r2l"
+            if kind != "miss":
+                p1_hit_class = "hit"
+
+        hand_html = f'<div class="hand {hand_dir_class} {anim_result_class} {hand_kind_class}" id="h{anim_key}">🖐️</div>'
+        caption = f'<div class="caption-line {kind}">{text}</div>'
+    else:
+        caption = '<div class="caption-line">&nbsp;</div>'
 
     html = f"""
-    <div class="stage shake" id="stage-{anim_key}">
-        <div class="fighter {kind}">{char}</div>
-        {impact_html}
+    <div class="arena {shake_class}">
+        <div class="char-box left {p1_hit_class}">
+            {p1_svg}
+            <div class="cheek-mark"></div>
+        </div>
+        {hand_html}
+        <div class="char-box right {p2_hit_class}">
+            {p2_svg}
+            <div class="cheek-mark"></div>
+        </div>
     </div>
-    <div class="caption-line {kind}">{text}</div>
+    {caption}
     """
     st.markdown(html, unsafe_allow_html=True)
 
@@ -202,22 +240,23 @@ def render_battle_scene():
 def do_action(action):
     attacker = st.session_state.turn
     target = other(attacker)
+    direction = "l2r" if attacker == "p1" else "r2l"
 
     if action == "attack":
         dmg = random.randint(12, 20)
         actual = apply_damage(target, dmg)
         add_log(f"⚔️ {name(attacker)}의 공격! {name(target)}에게 {actual}의 피해!")
-        set_scene(random.choice(ATTACK_LINES), "hit")
+        set_scene(random.choice(ATTACK_LINES), "hit", direction)
 
     elif action == "heavy":
         if random.randint(1, 100) <= 65:
             dmg = random.randint(25, 38)
             actual = apply_damage(target, dmg)
             add_log(f"💥 {name(attacker)}의 강공격 명중! {name(target)}에게 {actual}의 피해!")
-            set_scene(random.choice(ATTACK_LINES), "hit")
+            set_scene(random.choice(ATTACK_LINES), "hit", direction)
         else:
             add_log(f"❌ {name(attacker)}의 강공격이 빗나갔습니다!")
-            set_scene(random.choice(MISS_LINES), "miss")
+            set_scene(random.choice(MISS_LINES), "miss", direction)
 
     elif action == "defend":
         st.session_state.defending[attacker] = True
@@ -230,7 +269,7 @@ def do_action(action):
         st.session_state.defending[target] = False
         st.session_state.ultimate_used[attacker] = True
         add_log(f"🔥 {name(attacker)}의 필살기 작렬! {name(target)}에게 {dmg}의 피해! (방어 무시)")
-        set_scene(ULT_LINE, "ult")
+        set_scene(ULT_LINE, "ult", direction)
 
     if end_turn_check():
         return
@@ -248,7 +287,7 @@ def reset_all():
 # ---------------------------
 if st.session_state.stage == "setup":
     st.title("⚔️ 1:1 대전 게임")
-    st.caption("같은 화면에서 두 명이 번갈아 플레이하는 핫시트 PVP 게임입니다. 공격할 때마다 신태일이 날아와서 때립니다.")
+    st.caption("같은 화면에서 두 명이 번갈아 플레이하는 핫시트 PVP 게임입니다. 공격할 때마다 캐릭터가 싸대기를 날립니다.")
     st.divider()
 
     col1, col2 = st.columns(2)
