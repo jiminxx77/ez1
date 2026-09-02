@@ -299,4 +299,67 @@ elif st.session_state.stage == "battle":
 
     b1, b2, b3, b4 = st.columns(4)
     with b1:
-        if
+        if st.button("⚔️ 공격", use_container_width=True):
+            do_action("attack")
+            st.rerun()
+    with b2:
+        if st.button("💥 강공격", use_container_width=True):
+            do_action("heavy")
+            st.rerun()
+    with b3:
+        if st.button("🛡️ 방어", use_container_width=True):
+            do_action("defend")
+            st.rerun()
+    with b4:
+        ult_used = st.session_state.ultimate_used[current]
+        if st.button("🔥 필살기", use_container_width=True, disabled=ult_used):
+            do_action("ultimate")
+            st.rerun()
+        if ult_used:
+            st.caption("이미 사용함")
+
+    st.divider()
+    st.subheader("📜 전투 로그")
+    for entry in st.session_state.log[:8]:
+        st.write(entry)
+
+    st.divider()
+    if st.button("🔄 처음부터 다시하기"):
+        reset_all()
+        st.rerun()
+
+# ---------------------------
+# 화면: 결과
+# ---------------------------
+elif st.session_state.stage == "result":
+    winner = st.session_state.winner
+    st.balloons()
+    st.markdown(
+        f"<h1 style='text-align:center;'>🏆 {name(winner)} 승리! 🏆</h1>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f"<p style='text-align:center;'>{name('p1')} {st.session_state.hp['p1']} HP "
+        f"&nbsp;&nbsp;vs&nbsp;&nbsp; {name('p2')} {st.session_state.hp['p2']} HP</p>",
+        unsafe_allow_html=True,
+    )
+
+    st.divider()
+    st.subheader("📜 전투 기록")
+    for entry in reversed(st.session_state.log):
+        st.write(entry)
+
+    st.divider()
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🔁 같은 이름으로 다시하기", use_container_width=True):
+            p1n, p2n = st.session_state.p1_name, st.session_state.p2_name
+            reset_all()
+            st.session_state.p1_name = p1n
+            st.session_state.p2_name = p2n
+            st.session_state.stage = "setup"
+            st.rerun()
+    with c2:
+        if st.button("🏠 처음 화면으로", use_container_width=True):
+            reset_all()
+            st.rerun()
