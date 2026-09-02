@@ -325,4 +325,4 @@ else:
     st.divider()
     if st.button("🔄 게임 초기화"):
         reset_game()
-        st.rerun()0
+        st.rerun()
