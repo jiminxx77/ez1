@@ -1,9 +1,12 @@
 import streamlit as st
 import random
+import base64
+import os
 
 st.set_page_config(page_title="1:1 대전 게임", page_icon="⚔️", layout="centered")
 
 MAX_HP = 100
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
 
 ATTACK_LINES = ["찰싹!!", "짜악!!", "퍽!! 정통으로 맞음", "따귀 작렬!!"]
 MISS_LINES = ["헛스윙... 창피함", "어이쿠 빗나감"]
@@ -24,6 +27,15 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+
+@st.cache_data
+def load_base64(filename):
+    path = os.path.join(ASSETS_DIR, filename)
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
 
 
 def name(pid):
@@ -76,7 +88,6 @@ def set_scene(text, kind, direction):
 
 
 def flatten(html_str):
-    # 마크다운이 들여쓰기를 코드블록으로 오인하지 않도록 각 줄의 앞뒤 공백 제거
     lines = [line.strip() for line in html_str.strip("\n").splitlines()]
     return "".join(lines)
 
@@ -99,11 +110,54 @@ def character_svg(shirt_color, hat_color="#2b2b2b", flip=False):
     return "".join(parts)
 
 
+# ---------------------------
+# 배경 (gif) 적용
+# ---------------------------
+bg_b64 = load_base64("bg.gif")
+if bg_b64:
+    st.markdown(
+        flatten(f"""
+        <style>
+        .stApp {{
+            background-image: url(data:image/gif;base64,{bg_b64});
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        .block-container {{
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 16px;
+            padding: 24px !important;
+        }}
+        .block-container * {{ color: #ffffff; }}
+        </style>
+        """),
+        unsafe_allow_html=True,
+    )
+
+# ---------------------------
+# 배경음악 (직접 구한 mp3를 assets/bgm.mp3 로 넣으면 재생됨)
+# ---------------------------
+bgm_b64 = load_base64("bgm.mp3")
+if bgm_b64:
+    st.markdown(
+        flatten(f"""
+        <audio controls loop autoplay style="width:100%; margin-bottom:10px;">
+            <source src="data:audio/mp3;base64,{bgm_b64}" type="audio/mp3">
+        </audio>
+        """),
+        unsafe_allow_html=True,
+    )
+else:
+    st.info("🎵 assets/bgm.mp3 파일을 추가하면 배경음악이 자동으로 재생됩니다. (저작권free 음원을 직접 준비해주세요)")
+
+
 BATTLE_CSS = flatten("""
 <style>
 .arena { position:relative; height:200px; margin:6px 0 6px 0;
-  background: repeating-linear-gradient(45deg,#fff8e1,#fff8e1 10px,#ffecb3 10px,#ffecb3 20px);
-  border:3px solid #333; border-radius:10px; overflow:hidden; }
+  background: rgba(255,255,255,0.15);
+  border:3px solid #fff; border-radius:10px; overflow:hidden;
+  backdrop-filter: blur(2px); }
 .char-box { position:absolute; top:52%; transform:translateY(-50%); text-align:center; z-index:1; width:100px; }
 .char-box.left { left:6%; }
 .char-box.right { right:6%; }
@@ -129,8 +183,8 @@ BATTLE_CSS = flatten("""
 @keyframes shakeStage { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 50%{transform:translateX(6px);} 75%{transform:translateX(-4px);} }
 .caption-line { text-align:center; font-weight:900; min-height:1.6rem; margin:4px 0 12px 0; }
 .caption-line.hit { color:#ff5252; }
-.caption-line.ult { color:#d50000; font-size:1.2rem; }
-.caption-line.miss { color:#9e9e9e; }
+.caption-line.ult { color:#ffab00; font-size:1.2rem; }
+.caption-line.miss { color:#cfcfcf; }
 </style>
 """)
 
@@ -224,7 +278,7 @@ def reset_all():
 
 if st.session_state.stage == "setup":
     st.title("⚔️ 1:1 대전 게임")
-    st.caption("같은 화면에서 두 명이 번갈아 플레이하는 핫시트 PVP 게임입니다. 공격할 때마다 캐릭터가 싸대기를 날립니다.")
+    st.caption("같은 화면에서 두 명이 번갈아 플레이하는 핫시트 PVP 게임입니다.")
     st.divider()
 
     col1, col2 = st.columns(2)
